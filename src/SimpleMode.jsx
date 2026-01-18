@@ -28,6 +28,9 @@ function SimpleMode({ db }) {
   const addExtra = (type, id, grams) => {
     if (!id || grams <= 0) return;
     setExtras([...extras, { type, id, grams, key: uuid() }]);
+    // limpia input grams si quieres (seguimos usando DOM como antes)
+    const gramsEl = document.getElementById("foodExtraGrams");
+    if (gramsEl) gramsEl.value = "";
   };
 
   const tupperTypeObj = getTupperType(tupperType);
@@ -63,99 +66,125 @@ function SimpleMode({ db }) {
     <div>
       <h2>Modo Simple</h2>
 
-      <div>
-        <h3>Tupper principal</h3>
-        <select
-          value={tupperChoice}
-          onChange={(e) => setTupperChoice(e.target.value)}
-        >
-          {db.tuppers.map((t) => (
-            <option key={t.id} value={t.id}>
-              {t.name}
-            </option>
-          ))}
-        </select>
+      <div className="row grid-2">
+        <div className="field">
+          <label>Tupper principal</label>
+          <select
+            className="select"
+            value={tupperChoice}
+            onChange={(e) => setTupperChoice(e.target.value)}
+          >
+            {db.tuppers.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="field">
+          <label>Tipo de tupper</label>
+          <select
+            className="select"
+            value={tupperType}
+            onChange={(e) => setTupperType(e.target.value)}
+          >
+            {db.tupperTypes.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.name}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
-      <div>
-        <h3>Tipo de tupper</h3>
-        <select
-          value={tupperType}
-          onChange={(e) => setTupperType(e.target.value)}
-        >
-          {db.tupperTypes.map((t) => (
-            <option key={t.id} value={t.id}>
-              {t.name}
-            </option>
-          ))}
-        </select>
+      <div className="row">
+        <div className="field">
+          <label>Peso total (tupper + comida)</label>
+          <input
+            className="input"
+            type="number"
+            value={tupperWeightFull}
+            onChange={(e) => setTupperWeightFull(Number(e.target.value))}
+          />
+        </div>
       </div>
 
-      <div>
-        <h3>Peso total (tupper + comida)</h3>
-        <input
-          type="number"
-          value={tupperWeightFull}
-          onChange={(e) => setTupperWeightFull(Number(e.target.value))}
-        />
-      </div>
-
-      <hr />
+      <div className="hr" />
 
       <h3>Complementos</h3>
 
-      <div>
-        <select id="foodExtra">
-          {db.foods.map((f) => (
-            <option key={f.id} value={f.id}>
-              {f.name}
-            </option>
-          ))}
-        </select>
-        <input id="foodExtraGrams" type="number" placeholder="g" />
-        <button
-          onClick={() => {
-            const id = document.getElementById("foodExtra").value;
-            const grams = Number(
-              document.getElementById("foodExtraGrams").value
-            );
-            addExtra("food", id, grams);
-          }}
-        >
-          Añadir
-        </button>
+      <div className="card" style={{ padding: 12 }}>
+        <div className="inline-grid">
+          <select id="foodExtra" className="select">
+            {db.foods.map((f) => (
+              <option key={f.id} value={f.id}>
+                {f.name}
+              </option>
+            ))}
+          </select>
+          <input id="foodExtraGrams" className="input" type="number" placeholder="g" />
+          <button
+            className="btn btn--primary"
+            onClick={() => {
+              const id = document.getElementById("foodExtra").value;
+              const grams = Number(document.getElementById("foodExtraGrams").value);
+              addExtra("food", id, grams);
+            }}
+          >
+            Añadir
+          </button>
+        </div>
+
+        <div style={{ height: 8 }} />
+
+        <div className="inline-grid">
+          <select id="standardExtra" className="select">
+            {db.standardFoods.map((f) => (
+              <option key={f.id} value={f.id}>
+                {f.name}
+              </option>
+            ))}
+          </select>
+          <div></div>
+          <button
+            className="btn"
+            onClick={() => {
+              const id = document.getElementById("standardExtra").value;
+              addExtra("standard", id, 100);
+            }}
+          >
+            Añadir estándar
+          </button>
+        </div>
       </div>
 
-      <div>
-        <select id="standardExtra">
-          {db.standardFoods.map((f) => (
-            <option key={f.id} value={f.id}>
-              {f.name}
-            </option>
-          ))}
-        </select>
-        <button
-          onClick={() => {
-            const id = document.getElementById("standardExtra").value;
-            addExtra("standard", id, 100);
-          }}
-        >
-          Añadir estándar
-        </button>
-      </div>
-
-      <hr />
+      <div className="hr" />
 
       <h3>Macros totales</h3>
-      <p>Kcal: {total.kcal.toFixed(0)}</p>
-      <p>Proteína: {total.protein.toFixed(1)} g</p>
-      <p>Carbohidratos: {total.carbs.toFixed(1)} g</p>
-      <p>Grasas: {total.fat.toFixed(1)} g</p>
+      <div className="macros">
+        <div className="macro">
+          <div className="label">Kcal</div>
+          <div className="value">{total.kcal.toFixed(0)}</div>
+        </div>
+        <div className="macro">
+          <div className="label">Proteína (g)</div>
+          <div className="value">{total.protein.toFixed(1)}</div>
+        </div>
+        <div className="macro">
+          <div className="label">Carbohidratos (g)</div>
+          <div className="value">{total.carbs.toFixed(1)}</div>
+        </div>
+        <div className="macro">
+          <div className="label">Grasas (g)</div>
+          <div className="value">{total.fat.toFixed(1)}</div>
+        </div>
+      </div>
 
-      <hr />
+      <div className="hr" />
 
       <h3>Lista de extras</h3>
-      <ul>
+      <ul className="extras-list">
         {extras.map((e) => {
           const item =
             e.type === "food"
@@ -164,7 +193,11 @@ function SimpleMode({ db }) {
 
           return (
             <li key={e.key}>
-              {e.type} {item?.name ?? "Desconocido"} - {e.grams}g
+              <div>
+                <strong>{item?.name ?? "Desconocido"}</strong>
+                <div className="small">{e.type} · {e.grams} g</div>
+              </div>
+              <div className="small">{(calcFromPer100(item || {kcal:0}, e.grams).kcal || 0).toFixed(0)} kcal</div>
             </li>
           );
         })}

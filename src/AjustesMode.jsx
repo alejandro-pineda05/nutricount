@@ -13,12 +13,13 @@ function EditableRow({ item, onSave, onDelete, onCancel }) {
   return (
     <tr>
       <td>
-        <input value={name} onChange={(e) => setName(e.target.value)} />
+        <input className="input" value={name} onChange={(e) => setName(e.target.value)} />
       </td>
 
       {item.weight !== undefined ? (
         <td>
           <input
+            className="input"
             type="number"
             value={weight}
             onChange={(e) => setWeight(Number(e.target.value))}
@@ -27,26 +28,27 @@ function EditableRow({ item, onSave, onDelete, onCancel }) {
       ) : (
         <>
           <td>
-            <input type="number" value={kcal} onChange={(e) => setKcal(Number(e.target.value))} />
+            <input className="input" type="number" value={kcal} onChange={(e) => setKcal(Number(e.target.value))} />
           </td>
           <td>
             <input
+              className="input"
               type="number"
               value={protein}
               onChange={(e) => setProtein(Number(e.target.value))}
             />
           </td>
           <td>
-            <input type="number" value={carbs} onChange={(e) => setCarbs(Number(e.target.value))} />
+            <input className="input" type="number" value={carbs} onChange={(e) => setCarbs(Number(e.target.value))} />
           </td>
           <td>
-            <input type="number" value={fat} onChange={(e) => setFat(Number(e.target.value))} />
+            <input className="input" type="number" value={fat} onChange={(e) => setFat(Number(e.target.value))} />
           </td>
         </>
       )}
 
       <td>
-        <button
+        <button className="btn btn--primary"
           onClick={() =>
             onSave(
               item.weight !== undefined
@@ -57,8 +59,8 @@ function EditableRow({ item, onSave, onDelete, onCancel }) {
         >
           Guardar
         </button>
-        <button onClick={onCancel}>Cancelar</button>
-        <button onClick={() => onDelete(item.id)}>Borrar</button>
+        <button className="btn btn--ghost" onClick={onCancel}>Cancelar</button>
+        <button className="btn" onClick={() => onDelete(item.id)}>Borrar</button>
       </td>
     </tr>
   );
@@ -102,15 +104,15 @@ function AjustesMode({ db: dbData, reloadDb }) {
     <div>
       <h2>Modo Ajustes</h2>
 
-      <div>
-        <button onClick={() => setActiveTab("foods")}>Alimentos</button>
-        <button onClick={() => setActiveTab("standardFoods")}>Estándar</button>
-        <button onClick={() => setActiveTab("tuppers")}>Tuppers</button>
-        <button onClick={() => setActiveTab("tupperTypes")}>Tipos de Tupper</button>
+      <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+        <button className={`btn ${activeTab === "foods" ? "btn--primary" : ""}`} onClick={() => setActiveTab("foods")}>Alimentos</button>
+        <button className={`btn ${activeTab === "standardFoods" ? "btn--primary" : ""}`} onClick={() => setActiveTab("standardFoods")}>Estándar</button>
+        <button className={`btn ${activeTab === "tuppers" ? "btn--primary" : ""}`} onClick={() => setActiveTab("tuppers")}>Tuppers</button>
+        <button className={`btn ${activeTab === "tupperTypes" ? "btn--primary" : ""}`} onClick={() => setActiveTab("tupperTypes")}>Tipos de Tupper</button>
       </div>
 
-      <div>
-        <button
+      <div style={{ marginBottom: 12 }}>
+        <button className="btn btn--primary"
           onClick={() => {
             setNewItem(template[activeTab]);
             setEditingId("new");
@@ -120,61 +122,63 @@ function AjustesMode({ db: dbData, reloadDb }) {
         </button>
       </div>
 
-      <table border="1" cellPadding="5">
-        <thead>
-          <tr>
-            <th>Nombre</th>
-            {activeTab !== "tupperTypes" && <th>Kcal / 100g</th>}
-            {activeTab !== "tupperTypes" && <th>Proteína</th>}
-            {activeTab !== "tupperTypes" && <th>Carbs</th>}
-            {activeTab !== "tupperTypes" && <th>Grasa</th>}
-            {activeTab === "tupperTypes" && <th>Peso envase (g)</th>}
-            <th>Acciones</th>
-          </tr>
-        </thead>
-        <tbody>
-          {editingId === "new" && newItem && (
-            <EditableRow
-              item={newItem}
-              onSave={(item) => saveItem(activeTab, item)}
-              onDelete={() => {
-                setNewItem(null);
-                setEditingId(null);
-              }}
-              onCancel={() => {
-                setNewItem(null);
-                setEditingId(null);
-              }}
-            />
-          )}
-
-          {list.map((item) => (
-            <tr key={item.id}>
-              {editingId === item.id ? (
-                <EditableRow
-                  item={item}
-                  onSave={(newItem) => saveItem(activeTab, newItem)}
-                  onDelete={(id) => deleteItem(activeTab, id)}
-                  onCancel={() => setEditingId(null)}
-                />
-              ) : (
-                <>
-                  <td>{item.name}</td>
-                  {activeTab !== "tupperTypes" && <td>{item.kcal}</td>}
-                  {activeTab !== "tupperTypes" && <td>{item.protein}</td>}
-                  {activeTab !== "tupperTypes" && <td>{item.carbs}</td>}
-                  {activeTab !== "tupperTypes" && <td>{item.fat}</td>}
-                  {activeTab === "tupperTypes" && <td>{item.weight}</td>}
-                  <td>
-                    <button onClick={() => setEditingId(item.id)}>Editar</button>
-                    <button onClick={() => deleteItem(activeTab, item.id)}>Borrar</button>
-                  </td>
-                </>
-              )}
+      <div className="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Nombre</th>
+              {activeTab !== "tupperTypes" && <th>Kcal / 100g</th>}
+              {activeTab !== "tupperTypes" && <th>Proteína</th>}
+              {activeTab !== "tupperTypes" && <th>Carbs</th>}
+              {activeTab !== "tupperTypes" && <th>Grasa</th>}
+              {activeTab === "tupperTypes" && <th>Peso envase (g)</th>}
+              <th>Acciones</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {editingId === "new" && newItem && (
+              <EditableRow
+                item={newItem}
+                onSave={(item) => saveItem(activeTab, item)}
+                onDelete={() => {
+                  setNewItem(null);
+                  setEditingId(null);
+                }}
+                onCancel={() => {
+                  setNewItem(null);
+                  setEditingId(null);
+                }}
+              />
+            )}
+
+            {list.map((item) => (
+              <tr key={item.id}>
+                {editingId === item.id ? (
+                  <EditableRow
+                    item={item}
+                    onSave={(newItem) => saveItem(activeTab, newItem)}
+                    onDelete={(id) => deleteItem(activeTab, id)}
+                    onCancel={() => setEditingId(null)}
+                  />
+                ) : (
+                  <>
+                    <td>{item.name}</td>
+                    {activeTab !== "tupperTypes" && <td>{item.kcal}</td>}
+                    {activeTab !== "tupperTypes" && <td>{item.protein}</td>}
+                    {activeTab !== "tupperTypes" && <td>{item.carbs}</td>}
+                    {activeTab !== "tupperTypes" && <td>{item.fat}</td>}
+                    {activeTab === "tupperTypes" && <td>{item.weight}</td>}
+                    <td>
+                      <button className="btn" onClick={() => setEditingId(item.id)}>Editar</button>
+                      <button className="btn btn--ghost" onClick={() => deleteItem(activeTab, item.id)}>Borrar</button>
+                    </td>
+                  </>
+                )}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

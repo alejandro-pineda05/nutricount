@@ -27,21 +27,35 @@ function App() {
     loadDb();
   }, []);
 
-  if (!dbData) return <p>Cargando datos...</p>;
+  if (!dbData) return <p className="small">Cargando datos...</p>;
 
   return (
-    <div style={{ padding: "20px", fontFamily: "Arial" }}>
-      <h1>Calculadora de comida</h1>
-      <button onClick={() => setMode("simple")}>Modo Simple</button>
-      <button onClick={() => setMode("ajustes")}>Modo Ajustes</button>
+    <div className="app">
+      <header className="header">
+        <h1 className="title">Calculadora de comida</h1>
+        <div className="mode-controls">
+          <button
+            className={`btn ${mode === "simple" ? "btn--primary" : ""}`}
+            onClick={() => setMode("simple")}
+          >
+            Modo Simple
+          </button>
+          <button
+            className={`btn ${mode === "ajustes" ? "btn--primary" : "btn--ghost"}`}
+            onClick={() => setMode("ajustes")}
+          >
+            Modo Ajustes
+          </button>
+        </div>
+      </header>
 
-      <hr />
-
-      {mode === "simple" ? (
-        <SimpleMode db={dbData} />
-      ) : (
-        <AjustesMode db={dbData} reloadDb={loadDb} />
-      )}
+      <div className="card">
+        {mode === "simple" ? (
+          <SimpleMode db={dbData} />
+        ) : (
+          <AjustesMode db={dbData} reloadDb={loadDb} />
+        )}
+      </div>
     </div>
   );
 }
