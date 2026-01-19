@@ -1,4 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { db as firebaseDb } from "./firebase";
+import { doc, setDoc, getDoc } from "firebase/firestore";
 
 function uuid() {
   return Math.random().toString(16).slice(2) + Date.now().toString(16);
@@ -14,21 +16,93 @@ function calcFromPer100(item, grams) {
   };
 }
 
-function SimpleMode({ db }) {
+function SimpleMode({ db, reloadDb }) {
   const [tupperType, setTupperType] = useState(db.tupperTypes[0]?.id || "");
   const [tupperChoice, setTupperChoice] = useState(db.tuppers[0]?.id || "");
   const [tupperWeightFull, setTupperWeightFull] = useState(0);
   const [extras, setExtras] = useState([]);
+  const [progress, setProgress] = useState({
+    kcal: 0,
+    protein: 0,
+    carbs: 0,
+    fat: 0
+  });
 
   const getFood = (id) => db.foods.find((f) => f.id === id);
   const getStandardFood = (id) => db.standardFoods.find((f) => f.id === id);
   const getTupper = (id) => db.tuppers.find((t) => t.id === id);
   const getTupperType = (id) => db.tupperTypes.find((t) => t.id === id);
 
+  const loadProgress = async () => {
+    const docRef = doc(firebaseDb, "dailyProgress", "main");
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      setProgress(docSnap.data());
+    } else {
+      await setDoc(docRef, {
+        kcal: 0,
+        protein: 0,
+        carbs: 0,
+        fat: 0
+      });
+      setProgress({ kcal: 0, protein: 0, carbs: 0, fat: 0 });
+    }
+  };
+
+  useEffect(() => {
+    loadProgress();
+  }, []);
+
+  const saveProgress = async (newProgress) => {
+    const docRef = doc(firebaseDb, "dailyProgress", "main");
+    await setDoc(docRef, newProgress);
+    setProgress(newProgress);
+  };
+
   const addExtra = (type, id, grams) => {
     if (!id || grams <= 0) return;
+
+    const item =
+      type === "food" ? getFood(id) : getStandardFood(id);
+
+    if (!item) return;
+
+    const macros = calcFromPer100(item, grams);
+
+    const newProgress = {
+      kcal: progress.kcal + macros.kcal,
+      protein: progress.protein + macros.protein,
+      carbs: progress.carbs + macros.carbs,
+      fat: progress.fat + macros.fat
+    };
+
     setExtras([...extras, { type, id, grams, key: uuid() }]);
-    // limpia input grams si quieres (seguimos usando DOM como antes)
+    saveProgress(newProgress);
+
+    const gramsEl = document.getElementById("foodExtraGrams");
+    if (gramsEl) gramsEl.value = "";
+  };
+
+  const resetProgress = async () => {
+    const newProgress = { kcal: 0, protein: 0, carbs: 0, fat: 0 };
+    await saveProgress(newProgress);
+    setExtras([]);
+    setTupperWeightFull(0);
+  };
+
+  const consumeTupper = async () => {
+    // Añade las macros del tupper actual (tupper + extras) al progreso diario
+    const newProgress = {
+      kcal: progress.kcal + total.kcal,
+      protein: progress.protein + total.protein,
+      carbs: progress.carbs + total.carbs,
+      fat: progress.fat + total.fat
+    };
+
+    await saveProgress(newProgress);
+    // limpiar la selección actual (no resetea el progreso global)
+    setExtras([]);
+    setTupperWeightFull(0);
     const gramsEl = document.getElementById("foodExtraGrams");
     if (gramsEl) gramsEl.value = "";
   };
@@ -62,7 +136,6 @@ function SimpleMode({ db }) {
     }
   });
 
-  // Obtiene objetivo diario (document id 'main') si existe, si no valores por defecto
   const goalObj = db.dailyGoals?.find((g) => g.id === "main") || {
     id: "main",
     kcal: 2200,
@@ -75,6 +148,9 @@ function SimpleMode({ db }) {
     if (!goal || goal <= 0) return 0;
     return Math.min(100, Math.round((current / goal) * 100));
   };
+
+  const kcalWithCurrent = Math.round(progress.kcal + total.kcal);
+  const overKcal = Math.round(kcalWithCurrent - goalObj.kcal);
 
   return (
     <div>
@@ -201,23 +277,40 @@ function SimpleMode({ db }) {
       <div className="macros" style={{ marginBottom: 8 }}>
         <div className="macro">
           <div className="label">Kcal</div>
-          <div className="value">{Math.round(total.kcal)}/{goalObj.kcal}</div>
-          <div className="small">{pct(total.kcal, goalObj.kcal)}%</div>
+          <div className="value">{Math.round(progress.kcal)}/{goalObj.kcal}</div>
+          <div className="small">{pct(progress.kcal, goalObj.kcal)}%</div>
         </div>
         <div className="macro">
           <div className="label">Proteína (g)</div>
-          <div className="value">{total.protein.toFixed(1)}/{goalObj.protein}</div>
-          <div className="small">{pct(total.protein, goalObj.protein)}%</div>
+          <div className="value">{progress.protein.toFixed(1)}/{goalObj.protein}</div>
+          <div className="small">{pct(progress.protein, goalObj.protein)}%</div>
         </div>
         <div className="macro">
           <div className="label">Carbohidratos (g)</div>
-          <div className="value">{total.carbs.toFixed(1)}/{goalObj.carbs}</div>
-          <div className="small">{pct(total.carbs, goalObj.carbs)}%</div>
+          <div className="value">{progress.carbs.toFixed(1)}/{goalObj.carbs}</div>
+          <div className="small">{pct(progress.carbs, goalObj.carbs)}%</div>
         </div>
         <div className="macro">
           <div className="label">Grasas (g)</div>
-          <div className="value">{total.fat.toFixed(1)}/{goalObj.fat}</div>
-          <div className="small">{pct(total.fat, goalObj.fat)}%</div>
+          <div className="value">{progress.fat.toFixed(1)}/{goalObj.fat}</div>
+          <div className="small">{pct(progress.fat, goalObj.fat)}%</div>
+        </div>
+      </div>
+
+      <div style={{ textAlign: "center", marginBottom: 12 }}>
+        <div style={{ marginBottom: 8 }}>
+          <strong>Consumidas (incluye tupper actual):</strong> {kcalWithCurrent}/{goalObj.kcal} kcal · {pct(kcalWithCurrent, goalObj.kcal)}%
+        </div>
+        <div style={{ marginBottom: 8 }} className="small">
+          {overKcal > 0 ? (
+            <span style={{ color: "#b33" }}>+{overKcal} kcal sobre objetivo</span>
+          ) : (
+            <span style={{ color: "#2a7" }}>{Math.abs(overKcal)} kcal para alcanzar objetivo</span>
+          )}
+        </div>
+        <div style={{ display: "flex", justifyContent: "center", gap: 8 }}>
+          <button className="btn btn--primary" onClick={consumeTupper}>Consumir tupper</button>
+          <button className="btn btn--ghost" onClick={resetProgress}>Reset progreso</button>
         </div>
       </div>
 

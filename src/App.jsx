@@ -15,13 +15,15 @@ function App() {
     const standardSnap = await getDocs(collection(db, "standardFoods"));
     const tuppersSnap = await getDocs(collection(db, "tuppers"));
     const dailyGoalsSnap = await getDocs(collection(db, "dailyGoals"));
+    const dailyProgressSnap = await getDocs(collection(db, "dailyProgress"));
 
     setDbData({
       tupperTypes: tupperTypesSnap.docs.map(d => ({ id: d.id, ...d.data() })),
       foods: foodsSnap.docs.map(d => ({ id: d.id, ...d.data() })),
       standardFoods: standardSnap.docs.map(d => ({ id: d.id, ...d.data() })),
       tuppers: tuppersSnap.docs.map(d => ({ id: d.id, ...d.data() })),
-      dailyGoals: dailyGoalsSnap.docs.map(d => ({ id: d.id, ...d.data() }))
+      dailyGoals: dailyGoalsSnap.docs.map(d => ({ id: d.id, ...d.data() })),
+      dailyProgress: dailyProgressSnap.docs.map(d => ({ id: d.id, ...d.data() }))
     });
   };
 
@@ -53,7 +55,7 @@ function App() {
 
       <div className="card">
         {mode === "simple" ? (
-          <SimpleMode db={dbData} />
+          <SimpleMode db={dbData} reloadDb={loadDb} />
         ) : (
           <AjustesMode db={dbData} reloadDb={loadDb} />
         )}
