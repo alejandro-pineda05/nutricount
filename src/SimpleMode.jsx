@@ -62,6 +62,20 @@ function SimpleMode({ db }) {
     }
   });
 
+  // Obtiene objetivo diario (document id 'main') si existe, si no valores por defecto
+  const goalObj = db.dailyGoals?.find((g) => g.id === "main") || {
+    id: "main",
+    kcal: 2200,
+    protein: 150,
+    carbs: 250,
+    fat: 70
+  };
+
+  const pct = (current, goal) => {
+    if (!goal || goal <= 0) return 0;
+    return Math.min(100, Math.round((current / goal) * 100));
+  };
+
   return (
     <div>
       <h2>Modo Simple</h2>
@@ -178,6 +192,32 @@ function SimpleMode({ db }) {
         <div className="macro">
           <div className="label">Grasas (g)</div>
           <div className="value">{total.fat.toFixed(1)}</div>
+        </div>
+      </div>
+
+      <div className="hr" />
+
+      <h3>Progreso objetivo diario</h3>
+      <div className="macros" style={{ marginBottom: 8 }}>
+        <div className="macro">
+          <div className="label">Kcal</div>
+          <div className="value">{Math.round(total.kcal)}/{goalObj.kcal}</div>
+          <div className="small">{pct(total.kcal, goalObj.kcal)}%</div>
+        </div>
+        <div className="macro">
+          <div className="label">Proteína (g)</div>
+          <div className="value">{total.protein.toFixed(1)}/{goalObj.protein}</div>
+          <div className="small">{pct(total.protein, goalObj.protein)}%</div>
+        </div>
+        <div className="macro">
+          <div className="label">Carbohidratos (g)</div>
+          <div className="value">{total.carbs.toFixed(1)}/{goalObj.carbs}</div>
+          <div className="small">{pct(total.carbs, goalObj.carbs)}%</div>
+        </div>
+        <div className="macro">
+          <div className="label">Grasas (g)</div>
+          <div className="value">{total.fat.toFixed(1)}/{goalObj.fat}</div>
+          <div className="small">{pct(total.fat, goalObj.fat)}%</div>
         </div>
       </div>
 

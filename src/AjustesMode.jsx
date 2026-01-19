@@ -76,6 +76,7 @@ function AjustesMode({ db: dbData, reloadDb }) {
     if (activeTab === "standardFoods") return dbData.standardFoods;
     if (activeTab === "tuppers") return dbData.tuppers;
     if (activeTab === "tupperTypes") return dbData.tupperTypes;
+    if (activeTab === "objectives") return dbData.dailyGoals;
     return [];
   }, [activeTab, dbData]);
 
@@ -83,7 +84,8 @@ function AjustesMode({ db: dbData, reloadDb }) {
     foods: { id: "new", name: "", kcal: 0, protein: 0, carbs: 0, fat: 0 },
     standardFoods: { id: "new", name: "", kcal: 0, protein: 0, carbs: 0, fat: 0 },
     tuppers: { id: "new", name: "", kcal: 0, protein: 0, carbs: 0, fat: 0 },
-    tupperTypes: { id: "new", name: "", weight: 0 }
+    tupperTypes: { id: "new", name: "", weight: 0 },
+    objectives: { id: "main", kcal: 2200, protein: 150, carbs: 250, fat: 70 }
   };
 
   const saveItem = async (collectionName, item) => {
@@ -100,6 +102,21 @@ function AjustesMode({ db: dbData, reloadDb }) {
     setEditingId(null);
   };
 
+  // Handler específico para guardar objetivos en dailyGoals/main
+  const saveObjectives = async (values) => {
+    const payload = { id: "main", ...values };
+    await setDoc(doc(db, "dailyGoals", "main"), payload);
+    await reloadDb();
+  };
+
+  const currentObjectives = dbData.dailyGoals?.find((d) => d.id === "main") || {
+    id: "main",
+    kcal: 2200,
+    protein: 150,
+    carbs: 250,
+    fat: 70
+  };
+
   return (
     <div>
       <h2>Modo Ajustes</h2>
@@ -109,76 +126,144 @@ function AjustesMode({ db: dbData, reloadDb }) {
         <button className={`btn ${activeTab === "standardFoods" ? "btn--primary" : ""}`} onClick={() => setActiveTab("standardFoods")}>Estándar</button>
         <button className={`btn ${activeTab === "tuppers" ? "btn--primary" : ""}`} onClick={() => setActiveTab("tuppers")}>Tuppers</button>
         <button className={`btn ${activeTab === "tupperTypes" ? "btn--primary" : ""}`} onClick={() => setActiveTab("tupperTypes")}>Tipos de Tupper</button>
+        <button className={`btn ${activeTab === "objectives" ? "btn--primary" : ""}`} onClick={() => setActiveTab("objectives")}>Objetivos</button>
       </div>
 
       <div style={{ marginBottom: 12 }}>
-        <button className="btn btn--primary"
-          onClick={() => {
-            setNewItem(template[activeTab]);
-            setEditingId("new");
-          }}
-        >
-          Añadir nuevo
-        </button>
+        {activeTab !== "objectives" && (
+          <button className="btn btn--primary"
+            onClick={() => {
+              setNewItem(template[activeTab]);
+              setEditingId("new");
+            }}
+          >
+            Añadir nuevo
+          </button>
+        )}
       </div>
 
-      <div className="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Nombre</th>
-              {activeTab !== "tupperTypes" && <th>Kcal / 100g</th>}
-              {activeTab !== "tupperTypes" && <th>Proteína</th>}
-              {activeTab !== "tupperTypes" && <th>Carbs</th>}
-              {activeTab !== "tupperTypes" && <th>Grasa</th>}
-              {activeTab === "tupperTypes" && <th>Peso envase (g)</th>}
-              <th>Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            {editingId === "new" && newItem && (
-              <EditableRow
-                item={newItem}
-                onSave={(item) => saveItem(activeTab, item)}
-                onDelete={() => {
-                  setNewItem(null);
-                  setEditingId(null);
-                }}
-                onCancel={() => {
-                  setNewItem(null);
-                  setEditingId(null);
-                }}
-              />
-            )}
+      {activeTab === "objectives" ? (
+        <div>
+          <div className="card" style={{ padding: 12 }}>
+            <h3>Objetivos diarios (document: dailyGoals / id: main)</h3>
+            <div style={{ display: "grid", gap: 12, gridTemplateColumns: "1fr 1fr", marginTop: 8 }}>
+              <div className="field">
+                <label>Kcal objetivo</label>
+                <input className="input" type="number" defaultValue={currentObjectives.kcal} id="goalKcal" />
+              </div>
+              <div className="field">
+                <label>Proteína (g)</label>
+                <input className="input" type="number" defaultValue={currentObjectives.protein} id="goalProtein" />
+              </div>
+              <div className="field">
+                <label>Carbohidratos (g)</label>
+                <input className="input" type="number" defaultValue={currentObjectives.carbs} id="goalCarbs" />
+              </div>
+              <div className="field">
+                <label>Grasas (g)</label>
+                <input className="input" type="number" defaultValue={currentObjectives.fat} id="goalFat" />
+              </div>
+            </div>
 
-            {list.map((item) => (
-              <tr key={item.id}>
-                {editingId === item.id ? (
-                  <EditableRow
-                    item={item}
-                    onSave={(newItem) => saveItem(activeTab, newItem)}
-                    onDelete={(id) => deleteItem(activeTab, id)}
-                    onCancel={() => setEditingId(null)}
-                  />
-                ) : (
-                  <>
-                    <td>{item.name}</td>
-                    {activeTab !== "tupperTypes" && <td>{item.kcal}</td>}
-                    {activeTab !== "tupperTypes" && <td>{item.protein}</td>}
-                    {activeTab !== "tupperTypes" && <td>{item.carbs}</td>}
-                    {activeTab !== "tupperTypes" && <td>{item.fat}</td>}
-                    {activeTab === "tupperTypes" && <td>{item.weight}</td>}
-                    <td>
-                      <button className="btn" onClick={() => setEditingId(item.id)}>Editar</button>
-                      <button className="btn btn--ghost" onClick={() => deleteItem(activeTab, item.id)}>Borrar</button>
-                    </td>
-                  </>
-                )}
+            <div style={{ marginTop: 12 }}>
+              <button
+                className="btn btn--primary"
+                onClick={async () => {
+                  const kcal = Number(document.getElementById("goalKcal").value) || 0;
+                  const protein = Number(document.getElementById("goalProtein").value) || 0;
+                  const carbs = Number(document.getElementById("goalCarbs").value) || 0;
+                  const fat = Number(document.getElementById("goalFat").value) || 0;
+                  await saveObjectives({ kcal, protein, carbs, fat });
+                }}
+              >
+                Guardar objetivos
+              </button>
+            </div>
+          </div>
+
+          <div className="hr" />
+
+          <div>
+            <p className="small">Actualmente guardado:</p>
+            <div className="macros" style={{ marginTop: 8 }}>
+              <div className="macro">
+                <div className="label">Kcal objetivo</div>
+                <div className="value">{currentObjectives.kcal}</div>
+              </div>
+              <div className="macro">
+                <div className="label">Proteína (g)</div>
+                <div className="value">{currentObjectives.protein}</div>
+              </div>
+              <div className="macro">
+                <div className="label">Carbohidratos (g)</div>
+                <div className="value">{currentObjectives.carbs}</div>
+              </div>
+              <div className="macro">
+                <div className="label">Grasas (g)</div>
+                <div className="value">{currentObjectives.fat}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Nombre</th>
+                {activeTab !== "tupperTypes" && <th>Kcal / 100g</th>}
+                {activeTab !== "tupperTypes" && <th>Proteína</th>}
+                {activeTab !== "tupperTypes" && <th>Carbs</th>}
+                {activeTab !== "tupperTypes" && <th>Grasa</th>}
+                {activeTab === "tupperTypes" && <th>Peso envase (g)</th>}
+                <th>Acciones</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {editingId === "new" && newItem && (
+                <EditableRow
+                  item={newItem}
+                  onSave={(item) => saveItem(activeTab, item)}
+                  onDelete={() => {
+                    setNewItem(null);
+                    setEditingId(null);
+                  }}
+                  onCancel={() => {
+                    setNewItem(null);
+                    setEditingId(null);
+                  }}
+                />
+              )}
+
+              {list.map((item) => (
+                <tr key={item.id}>
+                  {editingId === item.id ? (
+                    <EditableRow
+                      item={item}
+                      onSave={(newItem) => saveItem(activeTab, newItem)}
+                      onDelete={(id) => deleteItem(activeTab, id)}
+                      onCancel={() => setEditingId(null)}
+                    />
+                  ) : (
+                    <>
+                      <td>{item.name}</td>
+                      {activeTab !== "tupperTypes" && <td>{item.kcal}</td>}
+                      {activeTab !== "tupperTypes" && <td>{item.protein}</td>}
+                      {activeTab !== "tupperTypes" && <td>{item.carbs}</td>}
+                      {activeTab !== "tupperTypes" && <td>{item.fat}</td>}
+                      {activeTab === "tupperTypes" && <td>{item.weight}</td>}
+                      <td>
+                        <button className="btn" onClick={() => setEditingId(item.id)}>Editar</button>
+                        <button className="btn btn--ghost" onClick={() => deleteItem(activeTab, item.id)}>Borrar</button>
+                      </td>
+                    </>
+                  )}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }
