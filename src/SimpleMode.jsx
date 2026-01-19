@@ -28,6 +28,8 @@ function SimpleMode({ db, reloadDb }) {
     fat: 0
   });
 
+  const [consumedList, setConsumedList] = useState([]);
+
   const getFood = (id) => db.foods.find((f) => f.id === id);
   const getStandardFood = (id) => db.standardFoods.find((f) => f.id === id);
   const getTupper = (id) => db.tuppers.find((t) => t.id === id);
@@ -37,15 +39,29 @@ function SimpleMode({ db, reloadDb }) {
     const docRef = doc(firebaseDb, "dailyProgress", "main");
     const docSnap = await getDoc(docRef);
     if (docSnap.exists()) {
-      setProgress(docSnap.data());
+      const data = docSnap.data();
+      setProgress({
+        kcal: data.kcal ?? 0,
+        protein: data.protein ?? 0,
+        carbs: data.carbs ?? 0,
+        fat: data.fat ?? 0
+      });
+      const loaded = (data.consumedList || []).map((it) => ({ ...it, key: it.key || uuid() }));
+      setConsumedList(loaded);
+      const loadedExtras = (data.extras || []).map((it) => ({ ...it, key: it.key || uuid() }));
+      setExtras(loadedExtras);
     } else {
       await setDoc(docRef, {
         kcal: 0,
         protein: 0,
         carbs: 0,
-        fat: 0
+        fat: 0,
+        consumedList: [],
+        extras: []
       });
       setProgress({ kcal: 0, protein: 0, carbs: 0, fat: 0 });
+      setConsumedList([]);
+      setExtras([]);
     }
   };
 
@@ -53,10 +69,12 @@ function SimpleMode({ db, reloadDb }) {
     loadProgress();
   }, []);
 
-  const saveProgress = async (newProgress) => {
+  const saveProgress = async (newProgress, newConsumedList = consumedList, newExtras = extras) => {
     const docRef = doc(firebaseDb, "dailyProgress", "main");
-    await setDoc(docRef, newProgress);
+    await setDoc(docRef, { ...newProgress, consumedList: newConsumedList, extras: newExtras });
     setProgress(newProgress);
+    setConsumedList(newConsumedList);
+    setExtras(newExtras);
   };
 
   const addExtra = (type, id, grams) => {
@@ -76,8 +94,9 @@ function SimpleMode({ db, reloadDb }) {
       fat: progress.fat + macros.fat
     };
 
-    setExtras([...extras, { type, id, grams, key: uuid() }]);
-    saveProgress(newProgress);
+    const newExtras = [...extras, { type, id, grams, key: uuid() }];
+    setExtras(newExtras);
+    saveProgress(newProgress, consumedList, newExtras);
 
     const gramsEl = document.getElementById("foodExtraGrams");
     if (gramsEl) gramsEl.value = "";
@@ -85,8 +104,10 @@ function SimpleMode({ db, reloadDb }) {
 
   const resetProgress = async () => {
     const newProgress = { kcal: 0, protein: 0, carbs: 0, fat: 0 };
-    await saveProgress(newProgress);
+    // Clear progress and consumed list and extras in Firebase and local state
+    await saveProgress(newProgress, [], []);
     setExtras([]);
+    setConsumedList([]);
     setTupperWeightFull(0);
   };
 
@@ -99,8 +120,12 @@ function SimpleMode({ db, reloadDb }) {
       fat: progress.fat + total.fat
     };
 
-    await saveProgress(newProgress);
-    // limpiar la selección actual (no resetea el progreso global)
+    // crear entradas consumidas para los extras actuales (food/standard)
+    const consumedExtras = extras.map((e) => ({ ...e, key: e.key || uuid() }));
+    const newConsumedItem = { type: "tupper", id: tupperChoice, grams: tupperWeightFood, key: uuid() };
+    const newConsumedList = [...consumedList, newConsumedItem, ...consumedExtras];
+    await saveProgress(newProgress, newConsumedList, []);
+    // limpiar la selección actual
     setExtras([]);
     setTupperWeightFull(0);
     const gramsEl = document.getElementById("foodExtraGrams");
@@ -251,28 +276,6 @@ function SimpleMode({ db, reloadDb }) {
 
       <div className="hr" />
 
-      <h3>Macros totales</h3>
-      <div className="macros">
-        <div className="macro">
-          <div className="label">Kcal</div>
-          <div className="value">{total.kcal.toFixed(0)}</div>
-        </div>
-        <div className="macro">
-          <div className="label">Proteína (g)</div>
-          <div className="value">{total.protein.toFixed(1)}</div>
-        </div>
-        <div className="macro">
-          <div className="label">Carbohidratos (g)</div>
-          <div className="value">{total.carbs.toFixed(1)}</div>
-        </div>
-        <div className="macro">
-          <div className="label">Grasas (g)</div>
-          <div className="value">{total.fat.toFixed(1)}</div>
-        </div>
-      </div>
-
-      <div className="hr" />
-
       <h3>Progreso objetivo diario</h3>
       <div className="macros" style={{ marginBottom: 8 }}>
         <div className="macro">
@@ -316,13 +319,19 @@ function SimpleMode({ db, reloadDb }) {
 
       <div className="hr" />
 
-      <h3>Lista de extras</h3>
+      <h3>Lista</h3>
       <ul className="extras-list">
-        {extras.map((e) => {
+        {[...consumedList, ...extras].map((e) => {
           const item =
             e.type === "food"
               ? getFood(e.id)
-              : getStandardFood(e.id);
+              : e.type === "standard"
+              ? getStandardFood(e.id)
+              : e.type === "tupper"
+              ? getTupper(e.id)
+              : null;
+
+          const macros = calcFromPer100(item || { kcal: 0, protein: 0, carbs: 0, fat: 0 }, e.grams);
 
           return (
             <li key={e.key}>
@@ -330,7 +339,9 @@ function SimpleMode({ db, reloadDb }) {
                 <strong>{item?.name ?? "Desconocido"}</strong>
                 <div className="small">{e.type} · {e.grams} g</div>
               </div>
-              <div className="small">{(calcFromPer100(item || {kcal:0}, e.grams).kcal || 0).toFixed(0)} kcal</div>
+              <div className="small">
+                {Math.round(macros.kcal)} kcal · {macros.protein.toFixed(1)} g P · {macros.carbs.toFixed(1)} g C · {macros.fat.toFixed(1)} g G
+              </div>
             </li>
           );
         })}
