@@ -177,6 +177,50 @@ function SimpleMode({ db, reloadDb }) {
   const kcalWithCurrent = Math.round(progress.kcal + total.kcal);
   const overKcal = Math.round(kcalWithCurrent - goalObj.kcal);
 
+  const removeExtra = async (key) => {
+    const item = extras.find((e) => e.key === key);
+    if (!item) return;
+
+    const thing = item.type === "food" ? getFood(item.id) : getStandardFood(item.id);
+    const macros = calcFromPer100(thing || { kcal: 0, protein: 0, carbs: 0, fat: 0 }, item.grams);
+
+    const newProgress = {
+      kcal: Math.max(0, progress.kcal - macros.kcal),
+      protein: Math.max(0, progress.protein - macros.protein),
+      carbs: Math.max(0, progress.carbs - macros.carbs),
+      fat: Math.max(0, progress.fat - macros.fat)
+    };
+
+    const newExtras = extras.filter((e) => e.key !== key);
+    await saveProgress(newProgress, consumedList, newExtras);
+  };
+
+  const removeConsumed = async (key) => {
+    const item = consumedList.find((c) => c.key === key);
+    if (!item) return;
+
+    const thing =
+      item.type === "food"
+        ? getFood(item.id)
+        : item.type === "standard"
+        ? getStandardFood(item.id)
+        : item.type === "tupper"
+        ? getTupper(item.id)
+        : null;
+
+    const macros = calcFromPer100(thing || { kcal: 0, protein: 0, carbs: 0, fat: 0 }, item.grams);
+
+    const newProgress = {
+      kcal: Math.max(0, progress.kcal - macros.kcal),
+      protein: Math.max(0, progress.protein - macros.protein),
+      carbs: Math.max(0, progress.carbs - macros.carbs),
+      fat: Math.max(0, progress.fat - macros.fat)
+    };
+
+    const newConsumedList = consumedList.filter((c) => c.key !== key);
+    await saveProgress(newProgress, newConsumedList, extras);
+  };
+
   return (
     <div>
       <h2>Modo Simple</h2>
@@ -301,16 +345,6 @@ function SimpleMode({ db, reloadDb }) {
       </div>
 
       <div style={{ textAlign: "center", marginBottom: 12 }}>
-        <div style={{ marginBottom: 8 }}>
-          <strong>Consumidas (incluye tupper actual):</strong> {kcalWithCurrent}/{goalObj.kcal} kcal · {pct(kcalWithCurrent, goalObj.kcal)}%
-        </div>
-        <div style={{ marginBottom: 8 }} className="small">
-          {overKcal > 0 ? (
-            <span style={{ color: "#b33" }}>+{overKcal} kcal sobre objetivo</span>
-          ) : (
-            <span style={{ color: "#2a7" }}>{Math.abs(overKcal)} kcal para alcanzar objetivo</span>
-          )}
-        </div>
         <div style={{ display: "flex", justifyContent: "center", gap: 8 }}>
           <button className="btn btn--primary" onClick={consumeTupper}>Consumir tupper</button>
           <button className="btn btn--ghost" onClick={resetProgress}>Reset progreso</button>
@@ -321,7 +355,7 @@ function SimpleMode({ db, reloadDb }) {
 
       <h3>Lista</h3>
       <ul className="extras-list">
-        {[...consumedList, ...extras].map((e) => {
+        {[...consumedList.map(c => ({ ...c, __origin: 'consumed' })), ...extras.map(x => ({ ...x, __origin: 'extra' }))].map((e) => {
           const item =
             e.type === "food"
               ? getFood(e.id)
@@ -339,8 +373,17 @@ function SimpleMode({ db, reloadDb }) {
                 <strong>{item?.name ?? "Desconocido"}</strong>
                 <div className="small">{e.type} · {e.grams} g</div>
               </div>
-              <div className="small">
-                {Math.round(macros.kcal)} kcal · {macros.protein.toFixed(1)} g P · {macros.carbs.toFixed(1)} g C · {macros.fat.toFixed(1)} g G
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div className="small">
+                  {Math.round(macros.kcal)} kcal · {macros.protein.toFixed(1)} g P · {macros.carbs.toFixed(1)} g C · {macros.fat.toFixed(1)} g G
+                </div>
+                <div>
+                  {e.__origin === 'consumed' ? (
+                    <button className="btn btn--ghost" onClick={() => removeConsumed(e.key)}>Eliminar</button>
+                  ) : (
+                    <button className="btn btn--ghost" onClick={() => removeExtra(e.key)}>Eliminar</button>
+                  )}
+                </div>
               </div>
             </li>
           );
