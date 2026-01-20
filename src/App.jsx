@@ -4,6 +4,7 @@ import { collection, getDocs } from "firebase/firestore";
 
 import SimpleMode from "./SimpleMode";
 import AjustesMode from "./AjustesMode";
+import HistoricalMode from "./HistoricalMode";
 
 function App() {
   const [mode, setMode] = useState("simple");
@@ -50,14 +51,22 @@ function App() {
           >
             Modo Ajustes
           </button>
+          <button
+            className={`btn ${mode === "historical" ? "btn--primary" : "btn--ghost"}`}
+            onClick={() => setMode("historical")}
+          >
+            Historial
+          </button>
         </div>
       </header>
 
       <div className="card">
         {mode === "simple" ? (
           <SimpleMode db={dbData} reloadDb={loadDb} />
-        ) : (
+        ) : mode === "ajustes" ? (
           <AjustesMode db={dbData} reloadDb={loadDb} />
+        ) : (
+          <HistoricalMode db={dbData} />
         )}
       </div>
     </div>

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { db as firebaseDb } from "./firebase";
-import { doc, setDoc, getDoc } from "firebase/firestore";
+import { doc, setDoc, getDoc, collection, addDoc } from "firebase/firestore";
 
 function uuid() {
   return Math.random().toString(16).slice(2) + Date.now().toString(16);
@@ -109,6 +109,35 @@ function SimpleMode({ db, reloadDb }) {
     setExtras([]);
     setConsumedList([]);
     setTupperWeightFull(0);
+  };
+
+  const saveDay = async () => {
+    if (consumedList.length === 0) {
+      alert("No hay nada que guardar. Consume algo primero.");
+      return;
+    }
+
+    // Obtener la fecha de hoy en formato YYYY-MM-DD
+    const today = new Date().toISOString().split("T")[0];
+
+    try {
+      await addDoc(collection(firebaseDb, "historicalDays"), {
+        date: today,
+        consumedList: consumedList,
+        macros: progress,
+        timestamp: new Date()
+      });
+      alert("Día guardado en el historial");
+      // Limpiar el progreso actual
+      const newProgress = { kcal: 0, protein: 0, carbs: 0, fat: 0 };
+      await saveProgress(newProgress, [], []);
+      setExtras([]);
+      setConsumedList([]);
+      setTupperWeightFull("");
+    } catch (error) {
+      console.error("Error guardando el día:", error);
+      alert("Error al guardar el día");
+    }
   };
 
   const consumeTupper = async () => {
@@ -350,8 +379,9 @@ function SimpleMode({ db, reloadDb }) {
       </div>
 
       <div style={{ textAlign: "center", marginBottom: 12 }}>
-        <div style={{ display: "flex", justifyContent: "center", gap: 8 }}>
+        <div style={{ display: "flex", justifyContent: "center", gap: 8, flexWrap: "wrap" }}>
           <button className="btn btn--primary" onClick={consumeTupper}>Consumir tupper</button>
+          <button className="btn btn--primary" onClick={saveDay}>Guardar día</button>
           <button className="btn btn--ghost" onClick={resetProgress}>Reset progreso</button>
         </div>
       </div>
