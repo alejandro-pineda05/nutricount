@@ -19,7 +19,7 @@ function calcFromPer100(item, grams) {
 function SimpleMode({ db, reloadDb }) {
   const [tupperType, setTupperType] = useState(db.tupperTypes[0]?.id || "");
   const [tupperChoice, setTupperChoice] = useState(db.tuppers[0]?.id || "");
-  const [tupperWeightFull, setTupperWeightFull] = useState(0);
+  const [tupperWeightFull, setTupperWeightFull] = useState("");
   const [extras, setExtras] = useState([]);
   const [progress, setProgress] = useState({
     kcal: 0,
@@ -141,7 +141,7 @@ function SimpleMode({ db, reloadDb }) {
 
   const tupperWeightFood = Math.max(
     0,
-    tupperWeightFull - (tupperTypeObj?.weight || 0)
+    (Number(tupperWeightFull) || 0) - (tupperTypeObj?.weight || 0)
   );
 
   const tupperMacros = tupperObj
@@ -268,7 +268,8 @@ function SimpleMode({ db, reloadDb }) {
             className="input"
             type="number"
             value={tupperWeightFull}
-            onChange={(e) => setTupperWeightFull(Number(e.target.value))}
+            onChange={(e) => setTupperWeightFull(e.target.value)}
+            placeholder="0"
           />
         </div>
       </div>
