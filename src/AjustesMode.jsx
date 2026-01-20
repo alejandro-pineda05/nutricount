@@ -2,6 +2,10 @@ import { useMemo, useState } from "react";
 import { db } from "./firebase";
 import { setDoc, doc, deleteDoc } from "firebase/firestore";
 
+function uuid() {
+  return Math.random().toString(16).slice(2) + Date.now().toString(16);
+}
+
 function EditableRow({ item, onSave, onDelete, onCancel }) {
   const [name, setName] = useState(item.name);
   const [kcal, setKcal] = useState(item.kcal || 0);
@@ -12,12 +16,12 @@ function EditableRow({ item, onSave, onDelete, onCancel }) {
 
   return (
     <tr>
-      <td>
+      <td data-label="Nombre">
         <input className="input" value={name} onChange={(e) => setName(e.target.value)} />
       </td>
 
       {item.weight !== undefined ? (
-        <td>
+        <td data-label="Peso (g)">
           <input
             className="input"
             type="number"
@@ -27,10 +31,10 @@ function EditableRow({ item, onSave, onDelete, onCancel }) {
         </td>
       ) : (
         <>
-          <td>
+          <td data-label="Kcal">
             <input className="input" type="number" value={kcal} onChange={(e) => setKcal(Number(e.target.value))} />
           </td>
-          <td>
+          <td data-label="Prot (g)">
             <input
               className="input"
               type="number"
@@ -38,29 +42,31 @@ function EditableRow({ item, onSave, onDelete, onCancel }) {
               onChange={(e) => setProtein(Number(e.target.value))}
             />
           </td>
-          <td>
+          <td data-label="Carbs (g)">
             <input className="input" type="number" value={carbs} onChange={(e) => setCarbs(Number(e.target.value))} />
           </td>
-          <td>
+          <td data-label="Grasa (g)">
             <input className="input" type="number" value={fat} onChange={(e) => setFat(Number(e.target.value))} />
           </td>
         </>
       )}
 
-      <td>
-        <button className="btn btn--primary"
-          onClick={() =>
-            onSave(
-              item.weight !== undefined
-                ? { ...item, name, weight }
-                : { ...item, name, kcal, protein, carbs, fat }
-            )
-          }
-        >
-          Guardar
-        </button>
-        <button className="btn btn--ghost" onClick={onCancel}>Cancelar</button>
-        <button className="btn" onClick={() => onDelete(item.id)}>Borrar</button>
+      <td data-label="Acciones">
+        <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+          <button className="btn btn--primary"
+            onClick={() =>
+              onSave(
+                item.weight !== undefined
+                  ? { ...item, name, weight }
+                  : { ...item, name, kcal, protein, carbs, fat }
+              )
+            }
+          >
+            Guardar
+          </button>
+          <button className="btn btn--ghost" onClick={onCancel}>Cancelar</button>
+          <button className="btn" onClick={() => onDelete(item.id)}>Borrar</button>
+        </div>
       </td>
     </tr>
   );
@@ -89,11 +95,35 @@ function AjustesMode({ db: dbData, reloadDb }) {
   };
 
   const saveItem = async (collectionName, item) => {
-    const id = item.id === "new" ? crypto.randomUUID() : item.id;
-    await setDoc(doc(db, collectionName, id), { ...item, id });
-    await reloadDb();
-    setNewItem(null);
-    setEditingId(null);
+    try {
+      const id = item.id === "new" ? uuid() : item.id;
+      const itemToSave = { 
+        ...item, 
+        id,
+        name: item.name || ""
+      };
+      
+      // Asegurar que todos los campos necesarios existan
+      if (collectionName !== "tupperTypes") {
+        itemToSave.kcal = itemToSave.kcal ?? 0;
+        itemToSave.protein = itemToSave.protein ?? 0;
+        itemToSave.carbs = itemToSave.carbs ?? 0;
+        itemToSave.fat = itemToSave.fat ?? 0;
+      } else {
+        itemToSave.weight = itemToSave.weight ?? 0;
+      }
+      
+      console.log("Guardando:", collectionName, itemToSave);
+      await setDoc(doc(db, collectionName, id), itemToSave);
+      console.log("Guardado exitosamente");
+      
+      await reloadDb();
+      setNewItem(null);
+      setEditingId(null);
+    } catch (error) {
+      console.error("Error guardando:", error);
+      alert("Error al guardar: " + error.message);
+    }
   };
 
   const deleteItem = async (collectionName, id) => {
@@ -121,17 +151,17 @@ function AjustesMode({ db: dbData, reloadDb }) {
     <div>
       <h2>Modo Ajustes</h2>
 
-      <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+      <div className="tabs-container">
         <button className={`btn ${activeTab === "foods" ? "btn--primary" : ""}`} onClick={() => setActiveTab("foods")}>Alimentos</button>
         <button className={`btn ${activeTab === "standardFoods" ? "btn--primary" : ""}`} onClick={() => setActiveTab("standardFoods")}>Estándar</button>
         <button className={`btn ${activeTab === "tuppers" ? "btn--primary" : ""}`} onClick={() => setActiveTab("tuppers")}>Tuppers</button>
-        <button className={`btn ${activeTab === "tupperTypes" ? "btn--primary" : ""}`} onClick={() => setActiveTab("tupperTypes")}>Tipos de Tupper</button>
+        <button className={`btn ${activeTab === "tupperTypes" ? "btn--primary" : ""}`} onClick={() => setActiveTab("tupperTypes")}>T. Tupper</button>
         <button className={`btn ${activeTab === "objectives" ? "btn--primary" : ""}`} onClick={() => setActiveTab("objectives")}>Objetivos</button>
       </div>
 
       <div style={{ marginBottom: 12 }}>
         {activeTab !== "objectives" && (
-          <button className="btn btn--primary"
+          <button className="btn btn--primary" style={{ width: "100%" }}
             onClick={() => {
               setNewItem(template[activeTab]);
               setEditingId("new");
@@ -146,7 +176,7 @@ function AjustesMode({ db: dbData, reloadDb }) {
         <div>
           <div className="card" style={{ padding: 12 }}>
             <h3>Objetivos diarios (document: dailyGoals / id: main)</h3>
-            <div style={{ display: "grid", gap: 12, gridTemplateColumns: "1fr 1fr", marginTop: 8 }}>
+            <div className="objectives-grid" style={{ marginTop: 8 }}>
               <div className="field">
                 <label>Kcal objetivo</label>
                 <input className="input" type="number" defaultValue={currentObjectives.kcal} id="goalKcal" />
@@ -165,9 +195,10 @@ function AjustesMode({ db: dbData, reloadDb }) {
               </div>
             </div>
 
-            <div style={{ marginTop: 12 }}>
+            <div style={{ marginTop: 16 }}>
               <button
                 className="btn btn--primary"
+                style={{ width: "100%" }}
                 onClick={async () => {
                   const kcal = Number(document.getElementById("goalKcal").value) || 0;
                   const protein = Number(document.getElementById("goalProtein").value) || 0;
@@ -246,15 +277,17 @@ function AjustesMode({ db: dbData, reloadDb }) {
                     />
                   ) : (
                     <>
-                      <td>{item.name}</td>
-                      {activeTab !== "tupperTypes" && <td>{item.kcal}</td>}
-                      {activeTab !== "tupperTypes" && <td>{item.protein}</td>}
-                      {activeTab !== "tupperTypes" && <td>{item.carbs}</td>}
-                      {activeTab !== "tupperTypes" && <td>{item.fat}</td>}
-                      {activeTab === "tupperTypes" && <td>{item.weight}</td>}
-                      <td>
-                        <button className="btn" onClick={() => setEditingId(item.id)}>Editar</button>
-                        <button className="btn btn--ghost" onClick={() => deleteItem(activeTab, item.id)}>Borrar</button>
+                      <td data-label="Nombre">{item.name}</td>
+                      {activeTab !== "tupperTypes" && <td data-label="Kcal">{item.kcal}</td>}
+                      {activeTab !== "tupperTypes" && <td data-label="Prot (g)">{item.protein}</td>}
+                      {activeTab !== "tupperTypes" && <td data-label="Carbs (g)">{item.carbs}</td>}
+                      {activeTab !== "tupperTypes" && <td data-label="Grasa (g)">{item.fat}</td>}
+                      {activeTab === "tupperTypes" && <td data-label="Peso (g)">{item.weight}</td>}
+                      <td data-label="Acciones">
+                        <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+                          <button className="btn" onClick={() => setEditingId(item.id)}>Editar</button>
+                          <button className="btn btn--ghost" onClick={() => deleteItem(activeTab, item.id)}>Borrar</button>
+                        </div>
                       </td>
                     </>
                   )}

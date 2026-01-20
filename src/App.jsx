@@ -64,13 +64,13 @@ function App() {
             className={`btn ${mode === "simple" ? "btn--primary" : ""}`}
             onClick={() => setMode("simple")}
           >
-            Modo Simple
+            Simple
           </button>
           <button
             className={`btn ${mode === "ajustes" ? "btn--primary" : "btn--ghost"}`}
             onClick={() => setMode("ajustes")}
           >
-            Modo Ajustes
+            Ajustes
           </button>
           <button
             className={`btn ${mode === "historical" ? "btn--primary" : "btn--ghost"}`}
@@ -81,7 +81,6 @@ function App() {
           <button
             className="btn btn--ghost"
             onClick={handleLogout}
-            style={{ marginLeft: "auto" }}
           >
             Salir
           </button>
