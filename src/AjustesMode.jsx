@@ -25,28 +25,30 @@ function EditableRow({ item, onSave, onDelete, onCancel }) {
           <input
             className="input"
             type="number"
-            value={weight}
-            onChange={(e) => setWeight(Number(e.target.value))}
+            value={weight || ""}
+            onChange={(e) => setWeight(e.target.value === "" ? 0 : Number(e.target.value))}
+            placeholder="0"
           />
         </td>
       ) : (
         <>
           <td data-label="Kcal">
-            <input className="input" type="number" value={kcal} onChange={(e) => setKcal(Number(e.target.value))} />
+            <input className="input" type="number" value={kcal || ""} onChange={(e) => setKcal(e.target.value === "" ? 0 : Number(e.target.value))} placeholder="0" />
           </td>
           <td data-label="Prot (g)">
             <input
               className="input"
               type="number"
-              value={protein}
-              onChange={(e) => setProtein(Number(e.target.value))}
+              value={protein || ""}
+              onChange={(e) => setProtein(e.target.value === "" ? 0 : Number(e.target.value))}
+              placeholder="0"
             />
           </td>
           <td data-label="Carbs (g)">
-            <input className="input" type="number" value={carbs} onChange={(e) => setCarbs(Number(e.target.value))} />
+            <input className="input" type="number" value={carbs || ""} onChange={(e) => setCarbs(e.target.value === "" ? 0 : Number(e.target.value))} placeholder="0" />
           </td>
           <td data-label="Grasa (g)">
-            <input className="input" type="number" value={fat} onChange={(e) => setFat(Number(e.target.value))} />
+            <input className="input" type="number" value={fat || ""} onChange={(e) => setFat(e.target.value === "" ? 0 : Number(e.target.value))} placeholder="0" />
           </td>
         </>
       )}
