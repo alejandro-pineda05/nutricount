@@ -276,7 +276,7 @@ function SimpleMode({ db, reloadDb }) {
 
       <div className="hr" />
 
-      <h3>Complementos</h3>
+      <h3>Comida</h3>
 
       <div className="card" style={{ padding: 12 }}>
         <div className="inline-grid">
