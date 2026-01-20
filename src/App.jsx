@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { db } from "./firebase";
 import { collection, getDocs } from "firebase/firestore";
 
+import Login from "./Login";
 import SimpleMode from "./SimpleMode";
 import AjustesMode from "./AjustesMode";
 import HistoricalMode from "./HistoricalMode";
@@ -9,6 +10,22 @@ import HistoricalMode from "./HistoricalMode";
 function App() {
   const [mode, setMode] = useState("simple");
   const [dbData, setDbData] = useState(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  useEffect(() => {
+    // Verificar si ya está autenticado
+    const authenticated = localStorage.getItem("nutricount_auth") === "true";
+    setIsAuthenticated(authenticated);
+  }, []);
+
+  const handleLogin = () => {
+    setIsAuthenticated(true);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("nutricount_auth");
+    setIsAuthenticated(false);
+  };
 
   const loadDb = async () => {
     const tupperTypesSnap = await getDocs(collection(db, "tupperTypes"));
@@ -31,6 +48,10 @@ function App() {
   useEffect(() => {
     loadDb();
   }, []);
+
+  if (!isAuthenticated) {
+    return <Login onLogin={handleLogin} />;
+  }
 
   if (!dbData) return <p className="small">Cargando datos...</p>;
 
@@ -56,6 +77,13 @@ function App() {
             onClick={() => setMode("historical")}
           >
             Historial
+          </button>
+          <button
+            className="btn btn--ghost"
+            onClick={handleLogout}
+            style={{ marginLeft: "auto" }}
+          >
+            Salir
           </button>
         </div>
       </header>
