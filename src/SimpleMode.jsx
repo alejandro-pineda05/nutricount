@@ -112,15 +112,19 @@ function SimpleMode({ db, reloadDb }) {
   };
 
   const consumeTupper = async () => {
-    // Añade las macros del tupper actual (tupper + extras) al progreso diario
+    // Calcula solo las macros del tupper (sin los extras)
+    const tupperOnlyMacros = tupperMacros;
+    
+    // Los extras ya fueron sumados al progress cuando se agregaron,
+    // por lo que solo sumamos el tupper en este punto
     const newProgress = {
-      kcal: progress.kcal + total.kcal,
-      protein: progress.protein + total.protein,
-      carbs: progress.carbs + total.carbs,
-      fat: progress.fat + total.fat
+      kcal: progress.kcal + tupperOnlyMacros.kcal,
+      protein: progress.protein + tupperOnlyMacros.protein,
+      carbs: progress.carbs + tupperOnlyMacros.carbs,
+      fat: progress.fat + tupperOnlyMacros.fat
     };
 
-    // crear entradas consumidas para los extras actuales (food/standard)
+    // crear entradas consumidas para los extras actuales (food/standard) y el tupper
     const consumedExtras = extras.map((e) => ({ ...e, key: e.key || uuid() }));
     const newConsumedItem = { type: "tupper", id: tupperChoice, grams: tupperWeightFood, key: uuid() };
     const newConsumedList = [...consumedList, newConsumedItem, ...consumedExtras];
