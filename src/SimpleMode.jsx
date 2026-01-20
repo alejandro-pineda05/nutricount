@@ -377,9 +377,12 @@ function SimpleMode({ db, reloadDb }) {
                 <strong>{item?.name ?? "Desconocido"}</strong>
                 <div className="small">{e.type} · {e.grams} g</div>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div className="small">
-                  {Math.round(macros.kcal)} kcal · {macros.protein.toFixed(1)} g P · {macros.carbs.toFixed(1)} g C · {macros.fat.toFixed(1)} g G
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <div className="small" style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  <div>{Math.round(macros.kcal)} kcal</div>
+                  <div>Proteína: {macros.protein.toFixed(1)} g</div>
+                  <div>Carbohidratos: {macros.carbs.toFixed(1)} g</div>
+                  <div>Grasas: {macros.fat.toFixed(1)} g</div>
                 </div>
                 <div>
                   {e.__origin === 'consumed' ? (
